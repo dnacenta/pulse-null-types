@@ -1,6 +1,6 @@
 [package]
 name = "pulse-system-types"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 description = "Shared contract types for the pulse-null plugin ecosystem"
 license = "AGPL-3.0-only"

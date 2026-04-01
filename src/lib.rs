@@ -77,6 +77,11 @@ pub struct ScheduledTask {
     /// Who created this task
     #[serde(default)]
     pub created_by: TaskCreator,
+    /// Optional evaluator type — if set, the scheduler checks preconditions
+    /// before firing. Currently supported: "pipeline" (checks if pipeline
+    /// documents have changed since last fire).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evaluator: Option<String>,
 }
 
 fn default_true() -> bool {
@@ -183,6 +188,21 @@ mod tests {
         assert_eq!(task.output_routing, OutputRouting::Silent);
         assert!(task.enabled);
         assert_eq!(task.created_by, TaskCreator::System);
+        assert!(task.evaluator.is_none());
+    }
+
+    #[test]
+    fn scheduled_task_with_evaluator() {
+        let json = r#"{
+            "id": "reflection",
+            "name": "Reflection Window",
+            "cron": "0 30 4 * * *",
+            "channel": "system",
+            "prompt": "Reflect.",
+            "evaluator": "pipeline"
+        }"#;
+        let task: ScheduledTask = serde_json::from_str(json).unwrap();
+        assert_eq!(task.evaluator.as_deref(), Some("pipeline"));
     }
 
     #[test]

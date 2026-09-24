@@ -92,7 +92,7 @@ impl LlmResponse {
 /// Origin of a message — distinguishes real human input from system-generated messages.
 ///
 /// Used by the hallucination guard to detect self-conversation loops: if no message
-/// with `MessageSource::Human` has arrived in N rounds, the entity is talking to itself.
+/// with `MessageSource::Human` has arrived in N rounds, the pulse is talking to itself.
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum MessageSource {

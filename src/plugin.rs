@@ -40,12 +40,12 @@ pub type PluginResult<'a> =
 /// Context passed to plugin factories during construction.
 ///
 /// Contains everything a plugin needs to initialize:
-/// filesystem root, entity identity, and LLM access.
+/// filesystem root, pulse identity, and LLM access.
 pub struct PluginContext {
-    /// Root directory of the entity (e.g., `/home/echo`).
-    pub entity_root: PathBuf,
-    /// Entity name from config (e.g., `"Echo"`).
-    pub entity_name: String,
+    /// Root directory of the pulse (e.g., `/home/synth/pulse-null/synth`).
+    pub pulse_root: PathBuf,
+    /// Pulse name from config (e.g., `"Echo"`).
+    pub pulse_name: String,
     /// LLM provider for plugin use (summarization, analysis, etc.).
     pub provider: Arc<dyn LmProvider>,
 }
@@ -112,7 +112,7 @@ pub trait Plugin: Send + Sync {
         Vec::new()
     }
 
-    /// Optional: contribute tools to the entity's tool registry.
+    /// Optional: contribute tools to the pulse's tool registry.
     fn tools(&self) -> Vec<Box<dyn Tool>> {
         Vec::new()
     }
@@ -127,6 +127,40 @@ pub trait Plugin: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::llm::{LlmResult, Message};
+
+    struct StubProvider;
+
+    impl LmProvider for StubProvider {
+        fn invoke(
+            &self,
+            _system_prompt: &str,
+            _messages: &[Message],
+            _max_tokens: u32,
+            _tools: Option<&[serde_json::Value]>,
+        ) -> LlmResult<'_> {
+            Box::pin(async { Err("stub provider".into()) })
+        }
+
+        fn name(&self) -> &str {
+            "stub"
+        }
+    }
+
+    #[test]
+    fn plugin_context_carries_pulse_identity() {
+        let ctx = PluginContext {
+            pulse_root: PathBuf::from("/home/synth/pulse-null/synth"),
+            pulse_name: "Synth".into(),
+            provider: Arc::new(StubProvider),
+        };
+        assert_eq!(
+            ctx.pulse_root,
+            PathBuf::from("/home/synth/pulse-null/synth")
+        );
+        assert_eq!(ctx.pulse_name, "Synth");
+        assert_eq!(ctx.provider.name(), "stub");
+    }
 
     #[test]
     fn plugin_role_equality() {

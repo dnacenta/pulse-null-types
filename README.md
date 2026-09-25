@@ -8,7 +8,7 @@ Defines the `Plugin` trait, LLM message types, monitoring types, and tool defini
 
 ```toml
 [dependencies]
-pulse-system-types = "0.5"
+pulse-system-types = "0.7"
 ```
 
 ## License

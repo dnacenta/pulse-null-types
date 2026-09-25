@@ -99,12 +99,20 @@ pub enum OutputRouting {
 }
 
 /// Who created the task.
+///
+/// Serialized in lowercase (`"system"`, `"pulse"`, `"user"`). The legacy
+/// `"entity"` value written before 0.7.0 still deserializes as
+/// [`TaskCreator::Pulse`].
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum TaskCreator {
+    /// Built into the runtime or contributed by a plugin.
     #[default]
     System,
-    Entity,
+    /// Created by the pulse itself at runtime.
+    #[serde(alias = "entity")]
+    Pulse,
+    /// Created by a human operator.
     User,
 }
 
@@ -203,6 +211,45 @@ mod tests {
         }"#;
         let task: ScheduledTask = serde_json::from_str(json).unwrap();
         assert_eq!(task.evaluator.as_deref(), Some("pipeline"));
+    }
+
+    #[test]
+    fn task_creator_pulse_serializes_as_pulse() {
+        let json = serde_json::to_string(&TaskCreator::Pulse).unwrap();
+        assert_eq!(json, r#""pulse""#);
+        let back: TaskCreator = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, TaskCreator::Pulse);
+    }
+
+    #[test]
+    fn task_creator_legacy_entity_deserializes_as_pulse() {
+        let creator: TaskCreator = serde_json::from_str(r#""entity""#).unwrap();
+        assert_eq!(creator, TaskCreator::Pulse);
+    }
+
+    #[test]
+    fn task_creator_rejects_unknown_value() {
+        assert!(serde_json::from_str::<TaskCreator>(r#""robot""#).is_err());
+    }
+
+    #[test]
+    fn scheduled_task_legacy_entity_creator_loads_and_rewrites_as_pulse() {
+        let legacy = r#"{
+            "id": "self-made",
+            "name": "Self-made task",
+            "cron": "0 0 9 * * *",
+            "channel": "reflection",
+            "prompt": "Check in.",
+            "created_by": "entity"
+        }"#;
+        let task: ScheduledTask = serde_json::from_str(legacy).unwrap();
+        assert_eq!(task.created_by, TaskCreator::Pulse);
+
+        let rewritten: serde_json::Value = serde_json::to_value(&task).unwrap();
+        assert_eq!(rewritten["created_by"], "pulse");
+
+        let back: ScheduledTask = serde_json::from_value(rewritten).unwrap();
+        assert_eq!(back.created_by, TaskCreator::Pulse);
     }
 
     #[test]

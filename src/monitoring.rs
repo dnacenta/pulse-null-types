@@ -197,6 +197,12 @@ pub struct OutcomeRecord {
     pub outcome: String,
     pub tokens_used: u32,
     pub tool_rounds: u32,
+    /// Self-prediction before execution ("I predict this session will...")
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub prediction: Option<String>,
+    /// Affective tag after execution (positive / negative / neutral / surprising)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valence: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -473,6 +479,8 @@ mod tests {
             outcome: "success".to_string(),
             tokens_used: 1500,
             tool_rounds: 3,
+            prediction: None,
+            valence: None,
         };
         let json = serde_json::to_string(&record).unwrap();
         let back: OutcomeRecord = serde_json::from_str(&json).unwrap();
